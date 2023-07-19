@@ -1,21 +1,14 @@
-To use any `VkImage`, including those in the swap chain, in the render pipeline
-we have to create a `VkImageView` object. An image view is quite literally a
-view into an image. It describes how to access the image and which part of the
-image to access, for example if it should be treated as a 2D texture depth
-texture without any mipmapping levels.
+要在渲染管线中使用任何`VkImage`，包括交换链中的图像，我们必须创建`VkImageView`对象。图像视图实际上是对图像的视图。它描述了如何访问图像以及要访问的图像部分，例如是否应将其视为2D纹理深度纹理而不包含任何mip映射级别。
 
-In this chapter we'll write a `createImageViews` function that creates a basic
-image view for every image in the swap chain so that we can use them as color
-targets later on.
+在本章中，我们将编写一个`createImageViews`函数，为交换链中的每个图像创建一个基本的图像视图，以便以后可以将它们用作颜色目标。
 
-First add a class member to store the image views in:
+首先添加一个类成员来存储图像视图：
 
 ```c++
 std::vector<VkImageView> swapChainImageViews;
 ```
 
-Create the `createImageViews` function and call it right after swap chain
-creation.
+创建函数 `createImageViews` ，并在创建交换链的函数后调用：
 
 ```c++
 void initVulkan() {
@@ -33,8 +26,7 @@ void createImageViews() {
 }
 ```
 
-The first thing we need to do is resize the list to fit all of the image views
-we'll be creating:
+首先，我们需要调整列表的大小以适应我们将要创建的所有图像视图：
 
 ```c++
 void createImageViews() {
@@ -43,7 +35,7 @@ void createImageViews() {
 }
 ```
 
-Next, set up the loop that iterates over all of the swap chain images.
+接下来，设置一个循环，遍历所有交换链图像：
 
 ```c++
 for (size_t i = 0; i < swapChainImages.size(); i++) {
@@ -51,8 +43,7 @@ for (size_t i = 0; i < swapChainImages.size(); i++) {
 }
 ```
 
-The parameters for image view creation are specified in a
-`VkImageViewCreateInfo` structure. The first few parameters are straightforward.
+图像视图的创建参数在`VkImageViewCreateInfo`结构体中指定。前几个参数很简单：
 
 ```c++
 VkImageViewCreateInfo createInfo{};
@@ -60,19 +51,14 @@ createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 createInfo.image = swapChainImages[i];
 ```
 
-The `viewType` and `format` fields specify how the image data should be
-interpreted. The `viewType` parameter allows you to treat images as 1D textures,
-2D textures, 3D textures and cube maps.
+`viewType`和`format`字段指定了如何解释图像数据。`viewType`参数允许你将图像视为1D纹理、2D纹理、3D纹理和立方体贴图。
 
 ```c++
 createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 createInfo.format = swapChainImageFormat;
 ```
 
-The `components` field allows you to swizzle the color channels around. For
-example, you can map all of the channels to the red channel for a monochrome
-texture. You can also map constant values of `0` and `1` to a channel. In our
-case we'll stick to the default mapping.
+`components`字段允许你重新排列颜色通道。例如，你可以将所有通道映射到红色通道来创建一个单色纹理。你还可以将常量值`0`和`1`映射到通道。在我们的情况下，我们将使用默认映射。
 
 ```c++
 createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -81,9 +67,7 @@ createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
 createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
 ```
 
-The `subresourceRange` field describes what the image's purpose is and which
-part of the image should be accessed. Our images will be used as color targets
-without any mipmapping levels or multiple layers.
+`subresourceRange`字段描述了图像的用途以及应该访问图像的哪个部分。我们的图像将用作没有任何mipmapping级别或多个图层的颜色目标。
 
 ```c++
 createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -93,12 +77,9 @@ createInfo.subresourceRange.baseArrayLayer = 0;
 createInfo.subresourceRange.layerCount = 1;
 ```
 
-If you were working on a stereographic 3D application, then you would create a
-swap chain with multiple layers. You could then create multiple image views for
-each image representing the views for the left and right eyes by accessing
-different layers.
+如果您正在开发一个立体3D应用程序，那么可以创建一个具有多个图层的交换链。然后，您可以为每个图像创建多个图像视图，通过访问不同的图层来表示左右眼的视图。
 
-Creating the image view is now a matter of calling `vkCreateImageView`:
+现在创建图像视图只需调用`vkCreateImageView`即可:
 
 ```c++
 if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
@@ -106,8 +87,7 @@ if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != 
 }
 ```
 
-Unlike images, the image views were explicitly created by us, so we need to add
-a similar loop to destroy them again at the end of the program:
+与图像不同，图像视图是由我们显式创建的，因此我们需要在程序结束时添加一个类似的循环来销毁它们:
 
 ```c++
 void cleanup() {
@@ -119,9 +99,6 @@ void cleanup() {
 }
 ```
 
-An image view is sufficient to start using an image as a texture, but it's not
-quite ready to be used as a render target just yet. That requires one more step
-of indirection, known as a framebuffer. But first we'll have to set up the
-graphics pipeline.
+图像视图足以将图像用作纹理，但还不能作为渲染目标使用。这需要另一步操作，称为帧缓冲区。但首先，我们需要设置图形管线。
 
 [C++ code](/code/07_image_views.cpp)

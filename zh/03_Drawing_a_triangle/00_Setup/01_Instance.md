@@ -1,12 +1,6 @@
 ## Creating an instance
 
-The very first thing you need to do is initialize the Vulkan library by creating
-an *instance*. The instance is the connection between your application and the
-Vulkan library and creating it involves specifying some details about your
-application to the driver.
-
-Start by adding a `createInstance` function and invoking it in the
-`initVulkan` function.
+你需要做的第一件事情就是通过创建一个 instance Vulkan实例来初始化。实例是应用程序和 Vulkan 库之间的连接，创建它涉及向驱动程序指定有关应用程序的一些详细信息。
 
 ```c++
 void initVulkan() {
@@ -14,18 +8,14 @@ void initVulkan() {
 }
 ```
 
-Additionally add a data member to hold the handle to the instance:
+增加一个instance成员变量:
 
 ```c++
 private:
 VkInstance instance;
 ```
 
-Now, to create an instance we'll first have to fill in a struct with some
-information about our application. This data is technically optional, but it may
-provide some useful information to the driver in order to optimize our specific
-application (e.g. because it uses a well-known graphics engine with
-certain special behavior). This struct is called `VkApplicationInfo`:
+现在，我们需要通过一个数据结构描述我们的应用程序并创建我们的实例。这是一个可选项, 但是它可以提供一些有用的信息给驱动程序来优化我们的应用程序 （例如，使用具有某些特殊行为的知名图形引擎）. 这个结构是 `VkApplicationInfo`:
 
 ```c++
 void createInstance() {
@@ -39,17 +29,9 @@ void createInstance() {
 }
 ```
 
-As mentioned before, many structs in Vulkan require you to explicitly specify
-the type in the `sType` member. This is also one of the many structs with a
-`pNext` member that can point to extension information in the future. We're
-using value initialization here to leave it as `nullptr`.
+如前所述，Vulkan中的许多结构体要求您在`sType`成员中明确指定类型。这也是许多结构体之一，具有一个`pNext`成员，可以在将来指向扩展信息。我们在这里使用值初始化将其保留为`nullptr`。
 
-A lot of information in Vulkan is passed through structs instead of function
-parameters and we'll have to fill in one more struct to provide sufficient
-information for creating an instance. This next struct is not optional and tells
-the Vulkan driver which global extensions and validation layers we want to use.
-Global here means that they apply to the entire program and not a specific
-device, which will become clear in the next few chapters.
+在Vulkan中，大量的信息通过结构体而不是函数参数传递，我们需要填写一个额外的结构体，以提供创建实例所需的足够信息。这个下一个结构体是必需的，并告诉Vulkan驱动程序我们想要使用哪些全局扩展和验证层。这里的全局意味着它们适用于整个程序，而不是特定的设备，这将在接下来的几章中变得清楚。
 
 ```c++
 VkInstanceCreateInfo createInfo{};
@@ -57,11 +39,7 @@ createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 createInfo.pApplicationInfo = &appInfo;
 ```
 
-The first two parameters are straightforward. The next two layers specify the
-desired global extensions. As mentioned in the overview chapter, Vulkan is a
-platform agnostic API, which means that you need an extension to interface with
-the window system. GLFW has a handy built-in function that returns the
-extension(s) it needs to do that which we can pass to the struct:
+前两个参数很简单。接下来的两个层指定了所需的全局扩展。正如在概述章节中提到的那样，Vulkan是一个与平台无关的API，这意味着您需要一个扩展来与窗口系统进行交互。GLFW有一个方便的内置函数，可以返回它所需的扩展，我们可以将其传递给结构体：
 
 ```c++
 uint32_t glfwExtensionCount = 0;
@@ -73,33 +51,25 @@ createInfo.enabledExtensionCount = glfwExtensionCount;
 createInfo.ppEnabledExtensionNames = glfwExtensions;
 ```
 
-The last two members of the struct determine the global validation layers to
-enable. We'll talk about these more in-depth in the next chapter, so just leave
-these empty for now.
+结构体的最后两个成员确定要启用的全局验证层。我们将在下一章中更详细地讨论这些内容，所以现在只需将它们留空即可。
 
 ```c++
 createInfo.enabledLayerCount = 0;
 ```
 
-We've now specified everything Vulkan needs to create an instance and we can
-finally issue the `vkCreateInstance` call:
+现在，我们已经指定了Vulkan创建实例所需的所有内容，我们最终可以发出`vkCreateInstance`调用：
 
 ```c++
 VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
 ```
 
-As you'll see, the general pattern that object creation function parameters in
-Vulkan follow is:
+正如您将看到的，Vulkan中对象创建函数参数的一般模式如下：
 
-* Pointer to struct with creation info
-* Pointer to custom allocator callbacks, always `nullptr` in this tutorial
-* Pointer to the variable that stores the handle to the new object
+* 包含创建信息的结构体指针
+* 自定义分配器回调函数的指针，在本教程中始终为`nullptr`
+* 存储新对象句柄的变量的指针
 
-If everything went well then the handle to the instance was stored in the
-`VkInstance` class member. Nearly all Vulkan functions return a value of type
-`VkResult` that is either `VK_SUCCESS` or an error code. To check if the
-instance was created successfully, we don't need to store the result and can
-just use a check for the success value instead:
+如果一切顺利，那么实例的句柄将存储在`VkInstance`类成员中。几乎所有的Vulkan函数都返回一个`VkResult`类型的值，它要么是`VK_SUCCESS`，要么是一个错误代码。为了检查实例是否成功创建，我们不需要存储结果，只需对成功值进行检查即可：
 
 ```c++
 if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
@@ -107,18 +77,14 @@ if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
 }
 ```
 
-Now run the program to make sure that the instance is created successfully.
+现在运行程序，确保实例成功创建。
 
-## Encountered VK_ERROR_INCOMPATIBLE_DRIVER:
-If using MacOS with the latest MoltenVK sdk, you may get `VK_ERROR_INCOMPATIBLE_DRIVER`
-returned from `vkCreateInstance`. According to the [Getting Start Notes](https://vulkan.lunarg.com/doc/sdk/1.3.216.0/mac/getting_started.html). Beginning with the 1.3.216 Vulkan SDK, the `VK_KHR_PORTABILITY_subset`
-extension is mandatory.
+## 遇到 VK_ERROR_INCOMPATIBLE_DRIVER 错误：
+如果在最新的MoltenVK SDK上使用MacOS，可能会从`vkCreateInstance`返回`VK_ERROR_INCOMPATIBLE_DRIVER`。根据[Getting Start Notes](https://vulkan.lunarg.com/doc/sdk/1.3.216.0/mac/getting_started.html)的说明，从1.3.216版本的Vulkan SDK开始，`VK_KHR_PORTABILITY_subset`扩展是强制性的。
 
-To get over this error, first add the `VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR` bit
-to `VkInstanceCreateInfo` struct's flags, then add `VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME`
-to instance enabled extension list.
+为了解决此错误，首先将`VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR`位添加到`VkInstanceCreateInfo`结构体的标志中，然后将`VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME`添加到实例启用的扩展列表中。
 
-Typically the code could be like this:
+通常代码可能如下所示：
 ```c++
 ...
 
@@ -140,45 +106,32 @@ if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
 }
 ```
 
-## Checking for extension support
+## 检查扩展支持
 
-If you look at the `vkCreateInstance` documentation then you'll see that one of
-the possible error codes is `VK_ERROR_EXTENSION_NOT_PRESENT`. We could simply
-specify the extensions we require and terminate if that error code comes back.
-That makes sense for essential extensions like the window system interface, but
-what if we want to check for optional functionality?
+如果查看`vkCreateInstance`的文档，您将看到其中一个可能的错误代码是`VK_ERROR_EXTENSION_NOT_PRESENT`。对于像窗口系统接口这样的基本扩展，我们可以简单地指定所需的扩展，并在返回该错误代码时终止。但是，如果我们想检查可选功能呢？
 
-To retrieve a list of supported extensions before creating an instance, there's
-the `vkEnumerateInstanceExtensionProperties` function. It takes a pointer to a
-variable that stores the number of extensions and an array of
-`VkExtensionProperties` to store details of the extensions. It also takes an
-optional first parameter that allows us to filter extensions by a specific
-validation layer, which we'll ignore for now.
+在创建实例之前，可以使用`vkEnumerateInstanceExtensionProperties`函数获取支持的扩展列表。它接受一个指向存储扩展数量的变量的指针，以及一个用于存储扩展详细信息的`VkExtensionProperties`数组。它还接受一个可选的第一个参数，允许我们按特定验证层过滤扩展，但我们现在忽略它。
 
-To allocate an array to hold the extension details we first need to know how
-many there are. You can request just the number of extensions by leaving the
-latter parameter empty:
+为了分配一个数组来存储扩展详细信息，我们首先需要知道有多少个扩展。您可以通过将后面的参数留空来仅请求扩展的数量：
 
 ```c++
 uint32_t extensionCount = 0;
 vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 ```
 
-Now allocate an array to hold the extension details (`include <vector>`):
+现在，分配一个数组来存储扩展详细信息 (`include <vector>`):
 
 ```c++
 std::vector<VkExtensionProperties> extensions(extensionCount);
 ```
 
-Finally we can query the extension details:
+最后我们可以检索扩展详细信息:
 
 ```c++
 vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 ```
 
-Each `VkExtensionProperties` struct contains the name and version of an
-extension. We can list them with a simple for loop (`\t` is a tab for
-indentation):
+每一个 `VkExtensionProperties` 结构 都包含了扩展的版本和名称。 我们可以通过一个简单的循环来查看 (`\t` is a tab for indentation):
 
 ```c++
 std::cout << "available extensions:\n";
@@ -188,16 +141,11 @@ for (const auto& extension : extensions) {
 }
 ```
 
-You can add this code to the `createInstance` function if you'd like to provide
-some details about the Vulkan support. As a challenge, try to create a function
-that checks if all of the extensions returned by
-`glfwGetRequiredInstanceExtensions` are included in the supported extensions
-list.
+如果您希望提供有关Vulkan支持的一些详细信息，可以将此代码添加到`createInstance`函数中。作为一个挑战，尝试创建一个函数，检查`glfwGetRequiredInstanceExtensions`返回的所有扩展是否包含在支持的扩展列表中。
 
 ## Cleaning up
 
-The `VkInstance` should be only destroyed right before the program exits. It can
-be destroyed in `cleanup` with the `vkDestroyInstance` function:
+ `VkInstance` 应该在程序退出时被正确销毁. 可以在 `cleanup` 中执行 `vkDestroyInstance` 函数来销毁:
 
 ```c++
 void cleanup() {
@@ -209,13 +157,8 @@ void cleanup() {
 }
 ```
 
-The parameters for the `vkDestroyInstance` function are straightforward. As
-mentioned in the previous chapter, the allocation and deallocation functions
-in Vulkan have an optional allocator callback that we'll ignore by passing
-`nullptr` to it. All of the other Vulkan resources that we'll create in the
-following chapters should be cleaned up before the instance is destroyed.
+`vkDestroyInstance`函数的参数很简单。如前一章所述，Vulkan中的分配和释放函数具有一个可选的分配器回调，我们将通过将`nullptr`传递给它来忽略它。在销毁实例之前，我们应该清理掉之前在后续章节中创建的所有其他Vulkan资源。
 
-Before continuing with the more complex steps after instance creation, it's time
-to evaluate our debugging options by checking out [validation layers](!en/Drawing_a_triangle/Setup/Validation_layers).
+在继续实例创建后的更复杂步骤之前，是时候通过查看[验证层](https://vulkan.lunarg.com/doc/sdk/latest/windows/validation_layers.html)来评估我们的调试选项了。
 
 [C++ code](/code/01_instance_creation.cpp)

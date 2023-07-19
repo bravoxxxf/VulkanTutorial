@@ -1,48 +1,22 @@
-Since Vulkan is a platform agnostic API, it can not interface directly with the
-window system on its own. To establish the connection between Vulkan and the
-window system to present results to the screen, we need to use the WSI (Window
-System Integration) extensions. In this chapter we'll discuss the first one,
-which is `VK_KHR_surface`. It exposes a `VkSurfaceKHR` object that represents an
-abstract type of surface to present rendered images to. The surface in our
-program will be backed by the window that we've already opened with GLFW.
+由于Vulkan是一个与平台无关的API，它不能直接与窗口系统交互。为了在屏幕上呈现结果并建立Vulkan与窗口系统之间的连接，我们需要使用WSI（Window System Integration）扩展。在本章中，我们将讨论第一个WSI扩展，即`VK_KHR_surface`。它暴露了一个`VkSurfaceKHR`对象，表示用于呈现渲染图像的抽象类型的表面。在我们的程序中，这个表面将由我们已经用GLFW打开的窗口支持。
 
-The `VK_KHR_surface` extension is an instance level extension and we've actually
-already enabled it, because it's included in the list returned by
-`glfwGetRequiredInstanceExtensions`. The list also includes some other WSI
-extensions that we'll use in the next couple of chapters.
+`VK_KHR_surface`扩展是一个实例级扩展，实际上我们已经启用它，因为它包含在`glfwGetRequiredInstanceExtensions`返回的列表中。该列表还包括一些其他我们将在接下来的几章中使用的WSI扩展。
 
-The window surface needs to be created right after the instance creation,
-because it can actually influence the physical device selection. The reason we
-postponed this is because window surfaces are part of the larger topic of
-render targets and presentation for which the explanation would have cluttered
-the basic setup. It should also be noted that window surfaces are an entirely
-optional component in Vulkan, if you just need off-screen rendering. Vulkan
-allows you to do that without hacks like creating an invisible window
-(necessary for OpenGL).
+窗口表面需要在实例创建后立即创建，因为它实际上可以影响物理设备的选择。我们推迟了这一步是因为窗口表面是渲染目标和呈现的一部分，解释这些内容会使基本设置变得混乱。还应该注意的是，窗口表面在Vulkan中是完全可选的组件，如果您只需要离屏渲染，Vulkan允许您创建一个不可见的窗口（OpenGL是必须的）。
 
-## Window surface creation
+## 窗口表面的创建
 
-Start by adding a `surface` class member right below the debug callback.
+首先，在调试回调函数的下面添加一个名为`surface`的类成员。
 
 ```c++
 VkSurfaceKHR surface;
 ```
 
-Although the `VkSurfaceKHR` object and its usage is platform agnostic, its
-creation isn't because it depends on window system details. For example, it
-needs the `HWND` and `HMODULE` handles on Windows. Therefore there is a
-platform-specific addition to the extension, which on Windows is called
-`VK_KHR_win32_surface` and is also automatically included in the list from
-`glfwGetRequiredInstanceExtensions`.
+尽管`VkSurfaceKHR`对象及其使用是与平台无关的，但它的创建不是，因为它取决于窗口系统的详细信息。例如，在Windows上，它需要`HWND`和`HMODULE`句柄。因此，扩展中有一个与平台相关的附加部分，在Windows上称为`VK_KHR_win32_surface`，它也会自动包含在`glfwGetRequiredInstanceExtensions`的列表中。
 
-I will demonstrate how this platform specific extension can be used to create a
-surface on Windows, but we won't actually use it in this tutorial. It doesn't
-make any sense to use a library like GLFW and then proceed to use
-platform-specific code anyway. GLFW actually has `glfwCreateWindowSurface` that
-handles the platform differences for us. Still, it's good to see what it does
-behind the scenes before we start relying on it.
+我将演示如何使用这个特定于平台的扩展来在Windows上创建一个表面，但在本教程中我们实际上不会使用它。使用GLFW这样的库，然后继续使用特定于平台的代码没有任何意义。GLFW实际上有`glfwCreateWindowSurface`函数，它为我们处理了平台差异。不过，在我们开始依赖它之前，了解它在幕后的工作原理还是很有好处的。
 
-To access native platform functions, you need to update the includes at the top:
+要访问本地平台函数，您需要在文件顶部更新包含的头文件:
 
 ```c++
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -52,10 +26,7 @@ To access native platform functions, you need to update the includes at the top:
 #include <GLFW/glfw3native.h>
 ```
 
-Because a window surface is a Vulkan object, it comes with a
-`VkWin32SurfaceCreateInfoKHR` struct that needs to be filled in. It has two
-important parameters: `hwnd` and `hinstance`. These are the handles to the
-window and the process.
+因为窗口表面是一个Vulkan对象，所以它带有一个需要填充的`VkWin32SurfaceCreateInfoKHR`结构体。它有两个重要的参数：`hwnd`和`hinstance`。它们是窗口和进程的句柄。
 
 ```c++
 VkWin32SurfaceCreateInfoKHR createInfo{};
@@ -64,11 +35,9 @@ createInfo.hwnd = glfwGetWin32Window(window);
 createInfo.hinstance = GetModuleHandle(nullptr);
 ```
 
-The `glfwGetWin32Window` function is used to get the raw `HWND` from the GLFW
-window object. The `GetModuleHandle` call returns the `HINSTANCE` handle of the
-current process.
+使用`glfwGetWin32Window`函数可以从GLFW窗口对象中获取原始的`HWND`句柄。`GetModuleHandle`函数返回当前进程的`HINSTANCE`句柄。
 
-After that the surface can be created with `vkCreateWin32SurfaceKHR`, which includes a parameter for the instance, surface creation details, custom allocators and the variable for the surface handle to be stored in. Technically this is a WSI extension function, but it is so commonly used that the standard Vulkan loader includes it, so unlike other extensions you don't need to explicitly load it.
+之后，可以使用`vkCreateWin32SurfaceKHR`函数创建表面，其中包括实例、表面创建细节、自定义分配器以及用于存储表面句柄的变量。从技术上讲，这是一个WSI扩展函数，但它是如此常用，以至于标准的Vulkan加载器将其包含在内，因此与其他扩展不同，您不需要显式加载它。
 
 ```c++
 if (vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
@@ -76,14 +45,9 @@ if (vkCreateWin32SurfaceKHR(instance, &createInfo, nullptr, &surface) != VK_SUCC
 }
 ```
 
-The process is similar for other platforms like Linux, where
-`vkCreateXcbSurfaceKHR` takes an XCB connection and window as creation details
-with X11.
+对于其他平台（如Linux），过程类似，`vkCreateXcbSurfaceKHR`函数接受XCB连接和窗口作为创建细节参数，适用于X11窗口系统。
 
-The `glfwCreateWindowSurface` function performs exactly this operation with a
-different implementation for each platform. We'll now integrate it into our
-program. Add a function `createSurface` to be called from `initVulkan` right
-after instance creation and `setupDebugMessenger`.
+`glfwCreateWindowSurface`函数对于每个平台执行的操作完全相同，只是具体实现有所不同。我们现在将把它整合到我们的程序中。在`initVulkan`函数中的实例创建和`setupDebugMessenger`之后添加一个名为`createSurface`的函数，并从该函数调用它。
 
 ```c++
 void initVulkan() {
@@ -99,8 +63,7 @@ void createSurface() {
 }
 ```
 
-The GLFW call takes simple parameters instead of a struct which makes the
-implementation of the function very straightforward:
+GLFW的调用接受简单的参数而不是一个结构体，这使得函数的实现非常直观简单:
 
 ```c++
 void createSurface() {
@@ -110,10 +73,7 @@ void createSurface() {
 }
 ```
 
-The parameters are the `VkInstance`, GLFW window pointer, custom allocators and
-pointer to `VkSurfaceKHR` variable. It simply passes through the `VkResult` from
-the relevant platform call. GLFW doesn't offer a special function for destroying
-a surface, but that can easily be done through the original API:
+参数包括`VkInstance`、GLFW窗口指针、自定义分配器以及指向`VkSurfaceKHR`变量的指针。它只是简单地传递相关平台调用的`VkResult`结果。GLFW并没有提供一个专门销毁表面的函数，但可以通过原始API很容易地完成这一操作:
 
 ```c++
 void cleanup() {
@@ -124,21 +84,14 @@ void cleanup() {
     }
 ```
 
-Make sure that the surface is destroyed before the instance.
 
-## Querying for presentation support
+在销毁实例之前，确保先销毁表面。
 
-Although the Vulkan implementation may support window system integration, that
-does not mean that every device in the system supports it. Therefore we need to
-extend `isDeviceSuitable` to ensure that a device can present images to the
-surface we created. Since the presentation is a queue-specific feature, the
-problem is actually about finding a queue family that supports presenting to the
-surface we created.
+## 查询是否支持呈现
 
-It's actually possible that the queue families supporting drawing commands and
-the ones supporting presentation do not overlap. Therefore we have to take into
-account that there could be a distinct presentation queue by modifying the
-`QueueFamilyIndices` structure:
+尽管Vulkan的实现可能支持窗口系统集成，但并不意味着系统中的每个设备都支持。因此，我们需要扩展`isDeviceSuitable`函数，以确保设备能够向我们创建的表面呈现图像。由于呈现是队列特定的功能，实际上问题是找到一个支持向我们创建的表面呈现的队列族。
+
+实际上，支持绘制命令的队列族和支持呈现的队列族可能不重叠。因此，我们必须考虑到可能存在一个独立的呈现队列，修改`QueueFamilyIndices`结构以反映这一点:
 
 ```c++
 struct QueueFamilyIndices {
@@ -151,19 +104,14 @@ struct QueueFamilyIndices {
 };
 ```
 
-Next, we'll modify the `findQueueFamilies` function to look for a queue family
-that has the capability of presenting to our window surface. The function to
-check for that is `vkGetPhysicalDeviceSurfaceSupportKHR`, which takes the
-physical device, queue family index and surface as parameters. Add a call to it
-in the same loop as the `VK_QUEUE_GRAPHICS_BIT`:
+接下来，我们将修改`findQueueFamilies`函数，以查找具有向我们的窗口表面呈现功能的队列族。用于检查的函数是`vkGetPhysicalDeviceSurfaceSupportKHR`，它接受物理设备、队列族索引和表面作为参数。在与`VK_QUEUE_GRAPHICS_BIT`相同的循环中添加对它的调用：
 
 ```c++
 VkBool32 presentSupport = false;
 vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 ```
 
-Then simply check the value of the boolean and store the presentation family
-queue index:
+然后简单地检查布尔值的值并存储呈现队列族的索引：
 
 ```c++
 if (presentSupport) {
@@ -171,25 +119,17 @@ if (presentSupport) {
 }
 ```
 
-Note that it's very likely that these end up being the same queue family after
-all, but throughout the program we will treat them as if they were separate
-queues for a uniform approach. Nevertheless, you could add logic to explicitly
-prefer a physical device that supports drawing and presentation in the same
-queue for improved performance.
+请注意，最终这两个队列族很可能是相同的，但在整个程序中，我们将把它们视为独立的队列，以实现统一的处理。然而，您可以添加逻辑来明确优先选择同时支持绘制和呈现的物理设备，以提高性能。
 
-## Creating the presentation queue
+## 创建呈现队列
 
-The one thing that remains is modifying the logical device creation procedure to
-create the presentation queue and retrieve the `VkQueue` handle. Add a member
-variable for the handle:
+现在只剩下修改逻辑设备创建过程来创建呈现队列并检索`VkQueue`句柄。添加一个成员变量来存储该句柄：
 
 ```c++
 VkQueue presentQueue;
 ```
 
-Next, we need to have multiple `VkDeviceQueueCreateInfo` structs to create a
-queue from both families. An elegant way to do that is to create a set of all
-unique queue families that are necessary for the required queues:
+接下来，我们需要使用多个`VkDeviceQueueCreateInfo`结构来从这两个队列族创建队列。一个优雅的方法是创建一个包含所有必要队列的唯一队列族的集合:
 
 ```c++
 #include <set>
@@ -212,22 +152,19 @@ for (uint32_t queueFamily : uniqueQueueFamilies) {
 }
 ```
 
-And modify `VkDeviceCreateInfo` to point to the vector:
+然后修改`VkDeviceCreateInfo`，将其指向这个向量：
 
 ```c++
 createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 createInfo.pQueueCreateInfos = queueCreateInfos.data();
 ```
 
-If the queue families are the same, then we only need to pass its index once.
-Finally, add a call to retrieve the queue handle:
+如果队列族是相同的，我们只需要将其索引传递一次。最后，添加一个调用来检索队列句柄:
 
 ```c++
 vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 ```
 
-In case the queue families are the same, the two handles will most likely have
-the same value now. In the next chapter we're going to look at swap chains and
-how they give us the ability to present images to the surface.
+如果队列族是相同的，那么这两个句柄现在很可能具有相同的值。在下一章中，我们将研究交换链以及它们如何让我们有能力向表面呈现图像。
 
 [C++ code](/code/05_window_surface.cpp)

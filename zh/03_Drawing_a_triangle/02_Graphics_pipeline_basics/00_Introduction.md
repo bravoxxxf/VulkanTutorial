@@ -1,81 +1,34 @@
-Over the course of the next few chapters we'll be setting up a graphics pipeline
-that is configured to draw our first triangle. The graphics pipeline is the
-sequence of operations that take the vertices and textures of your meshes all
-the way to the pixels in the render targets. A simplified overview is displayed
-below:
+在接下来的几章中，我们将设置一个图形管线，配置它来绘制我们的第一个三角形。图形管线是将顶点和纹理处理成最终像素的一系列操作。下面是一个简化的概述:
 
 ![](/images/vulkan_simplified_pipeline.svg)
 
-The *input assembler* collects the raw vertex data from the buffers you specify
-and may also use an index buffer to repeat certain elements without having to
-duplicate the vertex data itself.
+*输入组装器（Input Assembler）* 从你指定的缓冲区中收集原始顶点数据，也可以使用索引缓冲区来重复某些元素而无需复制顶点数据本身。
 
-The *vertex shader* is run for every vertex and generally applies
-transformations to turn vertex positions from model space to screen space. It
-also passes per-vertex data down the pipeline.
+*顶点着色器（Vertex Shader）* 用于处理每个顶点，并通常将顶点位置从模型空间转换为屏幕空间。它还将每个顶点的数据传递到管线的后续阶段。
 
-The *tessellation shaders* allow you to subdivide geometry based on certain
-rules to increase the mesh quality. This is often used to make surfaces like
-brick walls and staircases look less flat when they are nearby.
+*细分着色器（Tessellation Shaders）* 允许您基于特定规则细分几何图形，以增加网格质量。这通常用于使接近时的表面（如砖墙和楼梯）看起来不那么平坦。
 
-The *geometry shader* is run on every primitive (triangle, line, point) and can
-discard it or output more primitives than came in. This is similar to the
-tessellation shader, but much more flexible. However, it is not used much in
-today's applications because the performance is not that good on most graphics
-cards except for Intel's integrated GPUs.
+*几何着色器（Geometry Shader）* 在每个图元（三角形、线、点）上运行，可以丢弃图元或输出更多图元。这与细分着色器类似，但更加灵活。然而，它在现代应用中不太常用，因为除了英特尔的集成 GPU 之外，大多数显卡性能都不太好。
 
-The *rasterization* stage discretizes the primitives into *fragments*. These are
-the pixel elements that they fill on the framebuffer. Any fragments that fall
-outside the screen are discarded and the attributes outputted by the vertex
-shader are interpolated across the fragments, as shown in the figure. Usually
-the fragments that are behind other primitive fragments are also discarded here
-because of depth testing.
+*光栅化（Rasterization）* 阶段将图元离散成*片段*。这些片段是它们在帧缓冲区上填充的像素元素。任何落在屏幕外的片段都会被丢弃，顶点着色器输出的属性在片段之间进行插值，如图所示。通常，也会丢弃后面的片段，因为它们在深度测试中被覆盖。
 
-The *fragment shader* is invoked for every fragment that survives and determines
-which framebuffer(s) the fragments are written to and with which color and depth
-values. It can do this using the interpolated data from the vertex shader, which
-can include things like texture coordinates and normals for lighting.
+*片段着色器（Fragment Shader）* 在每个幸存的片段上运行，并确定片段将被写入哪个（些）帧缓冲区，以及使用哪些颜色和深度值。它可以使用顶点着色器的插值数据，其中包括纹理坐标和用于光照的法线等。
 
-The *color blending* stage applies operations to mix different fragments that
-map to the same pixel in the framebuffer. Fragments can simply overwrite each
-other, add up or be mixed based upon transparency.
+*颜色混合（Color Blending）* 阶段将应用于将映射到帧缓冲区相同像素的不同片段的混合操作。片段可以简单地相互覆盖、相加或根据透明度混合。
 
-Stages with a green color are known as *fixed-function* stages. These stages
-allow you to tweak their operations using parameters, but the way they work is
-predefined.
+绿色的阶段称为*固定功能*阶段。这些阶段允许您使用参数调整它们的操作，但它们的工作方式是预定义的。
 
-Stages with an orange color on the other hand are `programmable`, which means
-that you can upload your own code to the graphics card to apply exactly the
-operations you want. This allows you to use fragment shaders, for example, to
-implement anything from texturing and lighting to ray tracers. These programs
-run on many GPU cores simultaneously to process many objects, like vertices and
-fragments in parallel.
+另一方面，橙色的阶段是*可编程的*，这意味着您可以将您自己的代码上传到图形卡上，以应用您想要的操作。例如，这允许您使用片段着色器实现从纹理和光照到光线追踪等任何功能。这些程序在许多 GPU 核心上同时运行，以并行处理多个对象，例如顶点和片段。
 
-If you've used older APIs like OpenGL and Direct3D before, then you'll be used
-to being able to change any pipeline settings at will with calls like
-`glBlendFunc` and `OMSetBlendState`. The graphics pipeline in Vulkan is almost
-completely immutable, so you must recreate the pipeline from scratch if you want
-to change shaders, bind different framebuffers or change the blend function. The
-disadvantage is that you'll have to create a number of pipelines that represent
-all of the different combinations of states you want to use in your rendering
-operations. However, because all of the operations you'll be doing in the
-pipeline are known in advance, the driver can optimize for it much better.
+如果您之前使用过 OpenGL 和 Direct3D 等旧 API，那么您将习惯于能够通过调用 `glBlendFunc` 和 `OMSetBlendState` 等函数随意更改管线设置。在 Vulkan 中，图形管线几乎是不可变的，因此如果您想要更改着色器、绑定不同的帧缓冲区或更改混合函数，您必须从头开始重新创建管线。这样做的缺点是，您必须创建多个管线，代表您在渲染操作中想要使用的所有不同状态的组合。然而，由于管线中的所有操作都是预先知道的，所以驱动程序可以更好地进行优化。
 
-Some of the programmable stages are optional based on what you intend to do. For
-example, the tessellation and geometry stages can be disabled if you are just
-drawing simple geometry. If you are only interested in depth values then you can
-disable the fragment shader stage, which is useful for [shadow map](https://en.wikipedia.org/wiki/Shadow_mapping)
-generation.
+一些可编程阶段根据您的意图是可选的。例如，如果您只是绘制简单的几何图形，则可以禁用细分和几何阶段。如果您只对深度值感兴趣，则可以禁用片段着色器
 
-In the next chapter we'll first create the two programmable stages required to
-put a triangle onto the screen: the vertex shader and fragment shader. The
-fixed-function configuration like blending mode, viewport, rasterization will be
-set up in the chapter after that. The final part of setting up the graphics
-pipeline in Vulkan involves the specification of input and output framebuffers.
+阶段，这在生成[阴影贴图](https://en.wikipedia.org/wiki/Shadow_mapping)时非常有用。
 
-Create a `createGraphicsPipeline` function that is called right after
-`createImageViews` in `initVulkan`. We'll work on this function throughout the
-following chapters.
+在下一章中，我们将首先创建两个必需的可编程阶段，以将一个三角形显示在屏幕上：顶点着色器和片段着色器。固定功能配置，如混合模式、视口、光栅化，将在随后的章节中设置。在 Vulkan 中设置图形管线的最后一部分涉及输入和输出帧缓冲区的规范。
+
+创建一个名为 `createGraphicsPipeline` 的函数，并在 `initVulkan` 中的 `createImageViews` 后调用它。我们将在接下来的章节中逐步完善这个函数。
 
 ```c++
 void initVulkan() {

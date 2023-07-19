@@ -1,19 +1,14 @@
-## Introduction
+## 介绍
 
-After selecting a physical device to use we need to set up a *logical device* to
-interface with it. The logical device creation process is similar to the
-instance creation process and describes the features we want to use. We also
-need to specify which queues to create now that we've queried which queue
-families are available. You can even create multiple logical devices from the
-same physical device if you have varying requirements.
+在选择了要使用的物理设备之后，我们需要设置一个*逻辑设备*来与其进行交互。逻辑设备的创建过程类似于实例的创建过程，它描述了我们想要使用的功能。由于我们已经查询了可用的队列族，现在我们还需要指定要创建哪些队列。如果您有不同的需求，甚至可以从同一个物理设备创建多个逻辑设备。
 
-Start by adding a new class member to store the logical device handle in.
+首先，在类中添加一个新的成员来存储逻辑设备句柄。
 
 ```c++
 VkDevice device;
 ```
 
-Next, add a `createLogicalDevice` function that is called from `initVulkan`.
+下一步, 在 `initVulkan` 中增加 `createLogicalDevice` 函数.
 
 ```c++
 void initVulkan() {
@@ -28,12 +23,9 @@ void createLogicalDevice() {
 }
 ```
 
-## Specifying the queues to be created
+## 指定要创建的队列
 
-The creation of a logical device involves specifying a bunch of details in
-structs again, of which the first one will be `VkDeviceQueueCreateInfo`. This
-structure describes the number of queues we want for a single queue family.
-Right now we're only interested in a queue with graphics capabilities.
+逻辑设备的创建涉及再次在结构体中指定一堆细节，其中第一个结构体将是`VkDeviceQueueCreateInfo`。该结构体描述了我们希望为单个队列族创建的队列数量。目前我们只对具备图形功能的队列感兴趣。
 
 ```c++
 QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
@@ -44,44 +36,33 @@ queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
 queueCreateInfo.queueCount = 1;
 ```
 
-The currently available drivers will only allow you to create a small number of
-queues for each queue family and you don't really need more than one. That's
-because you can create all of the command buffers on multiple threads and then
-submit them all at once on the main thread with a single low-overhead call.
+目前可用的驱动程序只允许您为每个队列族创建少量的队列，而实际上您不需要多个队列。这是因为您可以在多个线程上创建所有的命令缓冲区，然后在主线程上用一个低开销的调用将它们一次性提交。
 
-Vulkan lets you assign priorities to queues to influence the scheduling of
-command buffer execution using floating point numbers between `0.0` and `1.0`.
-This is required even if there is only a single queue:
+Vulkan允许您为队列分配优先级，使用浮点数介于`0.0`和`1.0`之间，以影响命令缓冲区执行的调度。即使只有一个队列，这也是必需的:
 
 ```c++
 float queuePriority = 1.0f;
 queueCreateInfo.pQueuePriorities = &queuePriority;
 ```
 
-## Specifying used device features
+## 指定使用的设备功能
 
-The next information to specify is the set of device features that we'll be
-using. These are the features that we queried support for with
-`vkGetPhysicalDeviceFeatures` in the previous chapter, like geometry shaders.
-Right now we don't need anything special, so we can simply define it and leave
-everything to `VK_FALSE`. We'll come back to this structure once we're about to
-start doing more interesting things with Vulkan.
+接下来需要指定的信息是我们将要使用的设备功能。这些功能是我们在上一节中使用`vkGetPhysicalDeviceFeatures`查询到的支持特性，比如几何着色器。目前我们不需要任何特殊功能，所以我们可以简单地定义它并将所有内容都设置为`VK_FALSE`。等到我们准备开始在Vulkan中进行更有趣的操作时，我们会回到这个结构体。
 
 ```c++
 VkPhysicalDeviceFeatures deviceFeatures{};
 ```
 
-## Creating the logical device
+## 创建逻辑设备
 
-With the previous two structures in place, we can start filling in the main
-`VkDeviceCreateInfo` structure.
+有了前面两个结构体，我们可以开始填写主要的`VkDeviceCreateInfo`结构体了。
 
 ```c++
 VkDeviceCreateInfo createInfo{};
 createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 ```
 
-First add pointers to the queue creation info and device features structs:
+首先，将队列创建信息和设备功能结构体的指针添加进去:
 
 ```c++
 createInfo.pQueueCreateInfos = &queueCreateInfo;
@@ -90,17 +71,11 @@ createInfo.queueCreateInfoCount = 1;
 createInfo.pEnabledFeatures = &deviceFeatures;
 ```
 
-The remainder of the information bears a resemblance to the
-`VkInstanceCreateInfo` struct and requires you to specify extensions and
-validation layers. The difference is that these are device specific this time.
+剩余的信息与`VkInstanceCreateInfo`结构体类似，需要您指定设备特定的扩展和验证层。不同之处在于这些是这次是针对设备的。
 
-An example of a device specific extension is `VK_KHR_swapchain`, which allows
-you to present rendered images from that device to windows. It is possible that
-there are Vulkan devices in the system that lack this ability, for example
-because they only support compute operations. We will come back to this
-extension in the swap chain chapter.
+一个设备特定的扩展的例子是`VK_KHR_swapchain`，它允许您将从该设备渲染的图像呈现到窗口。可能存在不支持该功能的Vulkan设备，例如因为它们只支持计算操作。我们将在交换链章节再次涉及到这个扩展。
 
-Previous implementations of Vulkan made a distinction between instance and device specific validation layers, but this is [no longer the case](https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap40.html#extendingvulkan-layers-devicelayerdeprecation). That means that the `enabledLayerCount` and `ppEnabledLayerNames` fields of `VkDeviceCreateInfo` are ignored by up-to-date implementations. However, it is still a good idea to set them anyway to be compatible with older implementations:
+之前的Vulkan实现区分了实例和设备特定的验证层，但现在[不再是这样](https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap40.html#extendingvulkan-layers-devicelayerdeprecation)。这意味着`VkDeviceCreateInfo`的`enabledLayerCount`和`ppEnabledLayerNames`字段在最新的实现中被忽略。然而，为了与旧实现兼容，设置它们仍然是一个好主意:
 
 ```c++
 createInfo.enabledExtensionCount = 0;
@@ -113,24 +88,19 @@ if (enableValidationLayers) {
 }
 ```
 
-We won't need any device specific extensions for now.
+目前我们不需要任何设备特定的扩展。
 
-That's it, we're now ready to instantiate the logical device with a call to the
-appropriately named `vkCreateDevice` function.
+现在我们准备好通过调用名为`vkCreateDevice`的函数来实例化逻辑设备了。
 
 ```c++
 if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create logical device!");
+    throw std::runtime_error("创建逻辑设备失败!");
 }
 ```
 
-The parameters are the physical device to interface with, the queue and usage
-info we just specified, the optional allocation callbacks pointer and a pointer
-to a variable to store the logical device handle in. Similarly to the instance
-creation function, this call can return errors based on enabling non-existent
-extensions or specifying the desired usage of unsupported features.
+这些参数包括要与之交互的物理设备、我们刚刚指定的队列和使用信息、可选的分配回调指针，以及一个用于存储逻辑设备句柄的变量指针。与实例创建函数类似，这个调用可能会根据启用不存在的扩展或指定不支持的功能使用导致错误返回。
 
-The device should be destroyed in `cleanup` with the `vkDestroyDevice` function:
+设备实例需要在 `cleanup` 中调用 `vkDestroyDevice` 函数删除:
 
 ```c++
 void cleanup() {
@@ -139,33 +109,24 @@ void cleanup() {
 }
 ```
 
-Logical devices don't interact directly with instances, which is why it's not
-included as a parameter.
+逻辑设备不直接与实例进行交互，这就是为什么它不作为参数包含在内的原因。
 
-## Retrieving queue handles
+## 获取队列句柄
 
-The queues are automatically created along with the logical device, but we don't
-have a handle to interface with them yet. First add a class member to store a
-handle to the graphics queue:
+队列会随着逻辑设备的自动创建而创建，但我们还没有一个用于与它们进行交互的句柄。首先添加一个类成员来存储指向图形队列的句柄：
 
 ```c++
 VkQueue graphicsQueue;
 ```
 
-Device queues are implicitly cleaned up when the device is destroyed, so we
-don't need to do anything in `cleanup`.
+设备队列在设备销毁时会自动清理，所以我们不需要在`cleanup`函数中做任何处理。
 
-We can use the `vkGetDeviceQueue` function to retrieve queue handles for each
-queue family. The parameters are the logical device, queue family, queue index
-and a pointer to the variable to store the queue handle in. Because we're only
-creating a single queue from this family, we'll simply use index `0`.
+我们可以使用`vkGetDeviceQueue`函数来检索每个队列族的队列句柄。参数包括逻辑设备、队列族、队列索引以及一个用于存储队列句柄的变量的指针。由于我们只从该族中创建了一个队列，所以我们只需使用索引`0`。
 
 ```c++
 vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
 ```
 
-With the logical device and queue handles we can now actually start using the
-graphics card to do things! In the next few chapters we'll set up the resources
-to present results to the window system.
+现在有了逻辑设备和队列句柄，我们实际上可以开始使用显卡来进行操作了！在接下来的几章中，我们将设置资源来向窗口系统呈现结果。
 
 [C++ code](/code/04_logical_device.cpp)

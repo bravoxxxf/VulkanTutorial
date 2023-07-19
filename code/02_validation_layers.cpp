@@ -155,11 +155,12 @@ private:
         return extensions;
     }
 
+    // 检查验证层是否可用（被设备支持）
     bool checkValidationLayerSupport() {
         uint32_t layerCount;
-        vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+        vkEnumerateInstanceLayerProperties(&layerCount, nullptr); // 返回验证层的数量
 
-        std::vector<VkLayerProperties> availableLayers(layerCount);
+        std::vector<VkLayerProperties> availableLayers(layerCount); // 初始化availabelLayers数量
         vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
         for (const char* layerName : validationLayers) {
